@@ -1,130 +1,76 @@
-/**
- * Sample React Native App
- * https://github.com/facebook/react-native
- *
- * @format
- */
+import React, {useState} from 'react';
+import {SafeAreaView, StyleSheet} from 'react-native';
+import {SvgProps} from 'react-native-svg';
+import {FC} from 'react';
+import ZoomableView from './src/components/ZoomableView';
+import NavigationBar from './src/components/NavigationBar';
 
-import React from 'react';
-import type {PropsWithChildren} from 'react';
-import {
-  ScrollView,
-  StatusBar,
-  StyleSheet,
-  Text,
-  useColorScheme,
-  View,
-} from 'react-native';
+// Импортируйте все SVG файлы
+import North4 from './assets/north-4.svg';
+import North16 from './assets/north-16.svg';
+import South6 from './assets/south-6.svg';
+import South7 from './assets/south-7.svg';
+import South15 from './assets/south-15.svg';
+import South16 from './assets/south-16.svg';
 
-import {
-  Colors,
-  DebugInstructions,
-  Header,
-  LearnMoreLinks,
-  ReloadInstructions,
-} from 'react-native/Libraries/NewAppScreen';
+// Определяем тип для этажей
+type FloorType = 'north-4' | 'north-16' | 'south-6' | 'south-7' | 'south-15' | 'south-16';
 
-type SectionProps = PropsWithChildren<{
-  title: string;
-}>;
-
-function Section({children, title}: SectionProps): React.JSX.Element {
-  const isDarkMode = useColorScheme() === 'dark';
-  return (
-    <View style={styles.sectionContainer}>
-      <Text
-        style={[
-          styles.sectionTitle,
-          {
-            color: isDarkMode ? Colors.white : Colors.black,
-          },
-        ]}>
-        {title}
-      </Text>
-      <Text
-        style={[
-          styles.sectionDescription,
-          {
-            color: isDarkMode ? Colors.light : Colors.dark,
-          },
-        ]}>
-        {children}
-      </Text>
-    </View>
-  );
+// Определяем интерфейс для конфигурации размеров
+interface FloorConfig {
+  width: number;
+  height: number;
 }
 
-function App(): React.JSX.Element {
-  const isDarkMode = useColorScheme() === 'dark';
+const App = () => {
+  const [currentFloor, setCurrentFloor] = useState<FloorType>('north-4');
 
-  const backgroundStyle = {
-    backgroundColor: isDarkMode ? Colors.darker : Colors.lighter,
+  // Конфигурация размеров для каждого SVG
+  const floorConfigs: Record<FloorType, FloorConfig> = {
+    'north-4': {width: 1059, height: 2507},
+    'north-16': {width: 3525, height: 3214},
+    'south-6': {width: 2524, height: 2370},
+    'south-7': {width: 2967, height: 857},
+    'south-15': {width: 2356, height: 2390},
+    'south-16': {width: 2356, height: 2390},
   };
 
-  /*
-   * To keep the template simple and small we're adding padding to prevent view
-   * from rendering under the System UI.
-   * For bigger apps the reccomendation is to use `react-native-safe-area-context`:
-   * https://github.com/AppAndFlow/react-native-safe-area-context
-   *
-   * You can read more about it here:
-   * https://github.com/react-native-community/discussions-and-proposals/discussions/827
-   */
-  const safePadding = '5%';
+  // Компонент для текущего этажа
+  const FloorComponents: Record<FloorType, FC<SvgProps>> = {
+    'north-4': North4,
+    'north-16': North16,
+    'south-6': South6,
+    'south-7': South7,
+    'south-15': South15,
+    'south-16': South16,
+  };
+
+  const CurrentFloorComponent = FloorComponents[currentFloor];
+  const currentConfig = floorConfigs[currentFloor];
 
   return (
-    <View style={backgroundStyle}>
-      <StatusBar
-        barStyle={isDarkMode ? 'light-content' : 'dark-content'}
-        backgroundColor={backgroundStyle.backgroundColor}
+    <SafeAreaView style={styles.container}>
+      <NavigationBar
+        currentFloor={currentFloor}
+        onFloorChange={(floor: FloorType) => setCurrentFloor(floor)}
       />
-      <ScrollView
-        style={backgroundStyle}>
-        <View style={{paddingRight: safePadding}}>
-          <Header/>
-        </View>
-        <View
-          style={{
-            backgroundColor: isDarkMode ? Colors.black : Colors.white,
-            paddingHorizontal: safePadding,
-            paddingBottom: safePadding,
-          }}>
-          <Section title="Step One">
-            Edit <Text style={styles.highlight}>App.tsx</Text> to change this
-            screen and then come back to see your edits.
-          </Section>
-          <Section title="See Your Changes">
-            <ReloadInstructions />
-          </Section>
-          <Section title="Debug">
-            <DebugInstructions />
-          </Section>
-          <Section title="Learn More">
-            Read the docs to discover what to do next:
-          </Section>
-          <LearnMoreLinks />
-        </View>
-      </ScrollView>
-    </View>
+      <ZoomableView
+        contentWidth={currentConfig.width}
+        contentHeight={currentConfig.height}
+      >
+        <CurrentFloorComponent
+          width={currentConfig.width}
+          height={currentConfig.height}
+        />
+      </ZoomableView>
+    </SafeAreaView>
   );
-}
+};
 
 const styles = StyleSheet.create({
-  sectionContainer: {
-    marginTop: 32,
-    paddingHorizontal: 24,
-  },
-  sectionTitle: {
-    fontSize: 24,
-    fontWeight: '600',
-  },
-  sectionDescription: {
-    marginTop: 8,
-    fontSize: 18,
-    fontWeight: '400',
-  },
-  highlight: {
-    fontWeight: '700',
+  container: {
+    flex: 1,
+    backgroundColor: '#F5F5F5',
   },
 });
 
