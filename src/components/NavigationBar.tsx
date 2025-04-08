@@ -1,6 +1,5 @@
 import React from 'react';
-import {View, TouchableOpacity, Text, StyleSheet, Platform} from 'react-native';
-import {useSafeAreaInsets} from 'react-native-safe-area-context';
+import { View, TouchableOpacity, Text, StyleSheet, Platform, StatusBar } from 'react-native';
 
 type FloorType = 'north-4' | 'north-16' | 'south-6' | 'south-7' | 'south-15' | 'south-16';
 
@@ -10,8 +9,6 @@ interface NavigationBarProps {
 }
 
 const NavigationBar: React.FC<NavigationBarProps> = ({currentFloor, onFloorChange}) => {
-  const insets = useSafeAreaInsets();
-  
   const floors: Array<{id: FloorType; title: string}> = [
     {id: 'north-4', title: 'Северная 4'},
     {id: 'north-16', title: 'Северная 16'},
@@ -21,27 +18,60 @@ const NavigationBar: React.FC<NavigationBarProps> = ({currentFloor, onFloorChang
     {id: 'south-16', title: 'Южная 16'},
   ];
 
+  // Группируем этажи по башням
+  const northFloors = floors.filter(f => f.id.startsWith('north'));
+  const southFloors = floors.filter(f => f.id.startsWith('south'));
+
   return (
-    <View style={[styles.container, { paddingTop: insets.top + 20 }]}>
-      <View style={styles.innerContainer}>
-        {floors.map((floor) => (
-          <TouchableOpacity
-            key={floor.id}
-            style={[
-              styles.button,
-              currentFloor === floor.id && styles.activeButton,
-            ]}
-            activeOpacity={0.7}
-            onPress={() => onFloorChange(floor.id)}>
-            <Text
+    <View style={styles.container}>
+      <View style={styles.header}>
+        <Text style={styles.headerText}>Выберите этаж</Text>
+      </View>
+      
+      <View style={styles.towerContainer}>
+        <Text style={styles.towerLabel}>Северная башня:</Text>
+        <View style={styles.buttonRow}>
+          {northFloors.map((floor) => (
+            <TouchableOpacity
+              key={floor.id}
               style={[
-                styles.buttonText,
-                currentFloor === floor.id && styles.activeButtonText,
-              ]}>
-              {floor.title}
-            </Text>
-          </TouchableOpacity>
-        ))}
+                styles.button,
+                currentFloor === floor.id && styles.activeButton,
+              ]}
+              onPress={() => onFloorChange(floor.id)}>
+              <Text
+                style={[
+                  styles.buttonText,
+                  currentFloor === floor.id && styles.activeButtonText,
+                ]}>
+                {floor.title.split(' ')[1]} {/* Показываем только номер этажа */}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      </View>
+      
+      <View style={styles.towerContainer}>
+        <Text style={styles.towerLabel}>Южная башня:</Text>
+        <View style={styles.buttonRow}>
+          {southFloors.map((floor) => (
+            <TouchableOpacity
+              key={floor.id}
+              style={[
+                styles.button,
+                currentFloor === floor.id && styles.activeButton,
+              ]}
+              onPress={() => onFloorChange(floor.id)}>
+              <Text
+                style={[
+                  styles.buttonText,
+                  currentFloor === floor.id && styles.activeButtonText,
+                ]}>
+                {floor.title.split(' ')[1]} {/* Показываем только номер этажа */}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
       </View>
     </View>
   );
@@ -49,66 +79,72 @@ const NavigationBar: React.FC<NavigationBarProps> = ({currentFloor, onFloorChang
 
 const styles = StyleSheet.create({
   container: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
-    zIndex: 1000,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: {
-          width: 0,
-          height: 2,
-        },
-        shadowOpacity: 0.1,
-        shadowRadius: 3.84,
-      },
-      android: {
-        elevation: 5,
-      },
-    }),
+    backgroundColor: '#fff',
+    padding: 12,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 2},
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    borderBottomLeftRadius: 16,
+    borderBottomRightRadius: 16,
+    // Добавляем отступ сверху для статус-бара
+    paddingTop: Platform.OS === 'ios' ? StatusBar.currentHeight || 20 : 12,
+    marginTop: Platform.OS === 'android' ? StatusBar.currentHeight || 0 : 0,
   },
-  innerContainer: {
+  header: {
+    alignItems: 'center',
+    marginBottom: 12,
+    paddingBottom: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e0e0',
+  },
+  headerText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  towerContainer: {
+    marginBottom: 12,
+  },
+  towerLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#555',
+    marginBottom: 8,
+  },
+  buttonRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    justifyContent: 'center',
-    gap: 8,
   },
   button: {
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 20,
-    backgroundColor: '#f5f5f5',
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
-    minWidth: 100,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    marginRight: 8,
+    marginBottom: 8,
+    borderRadius: 12,
+    backgroundColor: '#f0f0f0',
+    minWidth: 60,
     alignItems: 'center',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: {
-          width: 0,
-          height: 1,
-        },
-        shadowOpacity: 0.1,
-        shadowRadius: 2,
-      },
-      android: {
-        elevation: 2,
-      },
-    }),
+    // Добавляем тень для объемности
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 1},
+    shadowOpacity: 0.2,
+    shadowRadius: 1.41,
   },
   activeButton: {
     backgroundColor: '#007AFF',
-    borderColor: '#0066CC',
+    // Усиливаем тень для активной кнопки
+    elevation: 4,
+    shadowColor: '#007AFF',
+    shadowOffset: {width: 0, height: 2},
+    shadowOpacity: 0.3,
+    shadowRadius: 2.62,
   },
   buttonText: {
     color: '#333',
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: '500',
   },
   activeButtonText: {
