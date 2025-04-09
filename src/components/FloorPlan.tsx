@@ -39,57 +39,141 @@ const FloorPlan: React.FC<FloorPlanProps> = ({
     };
   }, []);
 
-  // Функция для поиска элемента места в SVG по номеру места
+  // Переработанная функция для поиска элемента места в SVG по номеру места
+// Исправление ошибки в функции findPlaceElementByNumber
 	const findPlaceElementByNumber = (svg: string, placeNumber: string): string | null => {
 		console.log(`FloorPlan: Поиск элемента для места ${placeNumber} в SVG по тексту`);
 		
-		// Ищем текстовый элемент с номером места
-		const tspanRegex = new RegExp(`<tspan[^>]*>\\s*(${placeNumber})\\s*</tspan>`, 'i');
-		const tspanMatch = svg.match(tspanRegex);
+		// Метод 1: Поиск через прямое соответствие текста в tspan
+		// Добавляем флаг 'g' к регулярному выражению
+		const tspanRegex = new RegExp(`<tspan[^>]*>\\s*(${placeNumber})\\s*</tspan>`, 'gi');
+		const tspanMatches = [...svg.matchAll(tspanRegex)];
 		
-		if (!tspanMatch) {
+		if (tspanMatches.length === 0) {
 			console.log(`FloorPlan: Текстовый элемент с номером ${placeNumber} не найден`);
 			return null;
 		}
 		
-		console.log(`FloorPlan: Найден текстовый элемент с номером ${placeNumber}: ${tspanMatch[0]}`);
+		console.log(`FloorPlan: Найдено ${tspanMatches.length} текстовых элементов с номером ${placeNumber}`);
 		
-		// Находим позицию текстового элемента в SVG
-		const tspanPos = svg.indexOf(tspanMatch[0]);
-		if (tspanPos === -1) {
-			console.log(`FloorPlan: Не удалось определить позицию текстового элемента`);
-			return null;
-		}
-		
-		// Берем часть SVG до текстового элемента
-		const svgBeforeText = svg.substring(0, tspanPos);
-		
-		// Ищем ближайший родительский элемент <text> перед этим tspan
-		const textElementRegex = /<text[^>]*id="Number_(\d+)"[^>]*>[^<]*$/;
-		const textMatch = svgBeforeText.match(textElementRegex);
-		
-		if (textMatch && textMatch[1]) {
-			const placeId = textMatch[1];
-			console.log(`FloorPlan: Найден элемент Number_${placeId} для места ${placeNumber}`);
+		// Для каждого найденного tspan ищем соответствующий элемент места
+		for (const tspanMatch of tspanMatches) {
+			const matchText = tspanMatch[0];
+			const matchPos = svg.indexOf(matchText);
 			
-			// Ищем соответствующий элемент Place_X
-			const placeRegex = new RegExp(`<g id="Place_(${placeId})"[^>]*>`, 'g');
-			const placeMatches = [...svg.matchAll(placeRegex)];
+			if (matchPos === -1) continue;
 			
-			if (placeMatches.length > 0) {
-				console.log(`FloorPlan: Найден родительский элемент с ID "Place_${placeId}" для места ${placeNumber}`);
-				return `Place_${placeId}`;
+			// Ищем ближайший родительский элемент <text>
+			const svgBeforeText = svg.substring(0, matchPos);
+			const textEndPos = svgBeforeText.lastIndexOf('<text');
+			
+			if (textEndPos === -1) continue;
+			
+			const textElement = svgBeforeText.substring(textEndPos);
+			
+			// Извлекаем ID текстового элемента
+			// Здесь не используется matchAll, поэтому флаг 'g' не нужен
+			const textIdMatch = textElement.match(/id="([^"]+)"/);
+			if (!textIdMatch) continue;
+			
+			const textId = textIdMatch[1];
+			console.log(`FloorPlan: Найден текстовый элемент с ID "${textId}" для места ${placeNumber}`);
+			
+			// Метод 2: Поиск связанного Place_ элемента через анализ структуры SVG
+			
+			// Сначала проверяем, есть ли рядом с текстовым элементом элемент Place_
+			// Ищем все элементы Place_ в SVG
+			// Уже имеет флаг 'g'
+			const allPlaceElements = [...svg.matchAll(/<g id="(Place_[^"]+)"[^>]*>/g)];
+			
+			// Для каждого элемента Place_ проверяем, содержит ли он наш текстовый элемент с номером места
+			for (const placeElement of allPlaceElements) {
+				const placeId = placeElement[1];
+				const placeStartPos = svg.indexOf(placeElement[0]);
+				
+				if (placeStartPos === -1) continue;
+				
+				// Находим конец элемента Place_
+				const placeEndTag = '</g>';
+				let nestingLevel = 1;
+				let searchPos = placeStartPos + placeElement[0].length;
+				let placeEndPos = -1;
+				
+				while (nestingLevel > 0 && searchPos < svg.length) {
+					const nextOpenTag = svg.indexOf('<g', searchPos);
+					const nextCloseTag = svg.indexOf(placeEndTag, searchPos);
+					
+					if (nextCloseTag === -1) break;
+					
+					if (nextOpenTag !== -1 && nextOpenTag < nextCloseTag) {
+						nestingLevel++;
+						searchPos = nextOpenTag + 2;
+					} else {
+						nestingLevel--;
+						searchPos = nextCloseTag + placeEndTag.length;
+						if (nestingLevel === 0) {
+							placeEndPos = nextCloseTag;
+						}
+					}
+				}
+				
+				if (placeEndPos === -1) continue;
+				
+				// Проверяем, содержит ли элемент Place_ наш текстовый элемент
+				const placeContent = svg.substring(placeStartPos, placeEndPos + placeEndTag.length);
+				
+				if (placeContent.includes(matchText)) {
+					console.log(`FloorPlan: Найден элемент места ${placeId} для номера ${placeNumber}`);
+					return placeId;
+				}
+			}
+			
+			// Метод 3: Если не нашли через прямое соответствие, ищем через связь Number_ и Place_
+			if (textId.startsWith('Number_')) {
+				const numberId = textId.replace('Number_', '');
+				
+				// Проверяем, есть ли соответствующий элемент Place_ с тем же ID
+				// Уже имеет флаг 'g'
+				const placeRegex = new RegExp(`<g id="Place_${numberId}"[^>]*>`, 'g');
+				const placeMatches = [...svg.matchAll(placeRegex)];
+				
+				if (placeMatches.length > 0) {
+					const placeId = `Place_${numberId}`;
+					console.log(`FloorPlan: Найден элемент ${placeId} для места ${placeNumber} через соответствие ID`);
+					return placeId;
+				}
+				
+				// Если не нашли точное соответствие, ищем любой Place_ элемент, содержащий наш текстовый элемент
+				for (const placeElement of allPlaceElements) {
+					const placeId = placeElement[1];
+					const placeStartPos = svg.indexOf(placeElement[0]);
+					const placeEndPos = svg.indexOf('</g>', placeStartPos);
+					
+					if (placeStartPos === -1 || placeEndPos === -1) continue;
+					
+					const placeContent = svg.substring(placeStartPos, placeEndPos + 4);
+					
+					if (placeContent.includes(textId)) {
+						console.log(`FloorPlan: Найден элемент ${placeId} для места ${placeNumber} через содержимое`);
+						return placeId;
+					}
+				}
 			}
 		}
 		
-		// Если не нашли через id Number_X, попробуем найти через поиск вверх по дереву
-		// Ищем все элементы Place_X в SVG
-		const allPlaceRegex = /<g id="(Place_\d+)"[^>]*>[\s\S]*?<tspan[^>]*>\s*${placeNumber}\s*<\/tspan>/g;
-		const allPlaceMatches = [...svg.matchAll(allPlaceRegex)];
+		// Метод 4: Поиск через анализ всего SVG и поиск группы, содержащей текст с номером места
+		console.log(`FloorPlan: Пытаемся найти место ${placeNumber} через анализ всего SVG`);
 		
-		if (allPlaceMatches.length > 0) {
-			const placeId = allPlaceMatches[0][1];
-			console.log(`FloorPlan: Найден родительский элемент с ID "${placeId}" для места ${placeNumber}`);
+		// Создаем регулярное выражение для поиска группы, содержащей текст с номером места
+		// Добавляем экранирование для placeNumber, чтобы избежать проблем с специальными символами
+		const escapedPlaceNumber = placeNumber.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+		// Уже имеет флаг 'g'
+		const groupWithTextRegex = new RegExp(`<g id="(Place_[^"]+)"[^>]*>[\\s\\S]*?<tspan[^>]*>\\s*${escapedPlaceNumber}\\s*</tspan>[\\s\\S]*?</g>`, 'g');
+		const groupMatches = [...svg.matchAll(groupWithTextRegex)];
+		
+		if (groupMatches.length > 0) {
+			const placeId = groupMatches[0][1];
+			console.log(`FloorPlan: Найден элемент ${placeId} для места ${placeNumber} через поиск по всему SVG`);
 			return placeId;
 		}
 		
@@ -106,6 +190,10 @@ const FloorPlan: React.FC<FloorPlanProps> = ({
     let placesFound = 0;
     let placesNotFound = 0;
     
+    // Предварительно создаем карту соответствия номеров мест и их ID в SVG
+    // для оптимизации процесса обработки
+    const placeIdMap = new Map<string, string | null>();
+    
     // Обрабатываем места порциями для предотвращения зависания UI
     for (let i = 0; i < places.length; i += BATCH_SIZE) {
       const batch = places.slice(i, i + BATCH_SIZE);
@@ -117,8 +205,18 @@ const FloorPlan: React.FC<FloorPlanProps> = ({
         const placeId = place.toString();
         console.log(`FloorPlan: Обработка места с ID: ${placeId}`);
         
-        // Ищем элемент места в SVG по номеру места
-        const placeElementId = findPlaceElementByNumber(modifiedSvg, placeId);
+        // Проверяем, есть ли уже найденный ID для этого места
+        let placeElementId = placeIdMap.get(placeId);
+        
+        // Если нет, ищем его в SVG
+        if (!placeElementId) {
+          placeElementId = findPlaceElementByNumber(modifiedSvg, placeId);
+          
+          // Сохраняем найденный ID в карту для повторного использования
+          if (placeElementId ) {
+            placeIdMap.set(placeId, placeElementId);
+          }
+        }
         
         if (placeElementId) {
           placesFound++;
