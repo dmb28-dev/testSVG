@@ -27,10 +27,9 @@ const ZoomableView: React.FC<ZoomableViewProps> = memo(({
   const screenHeight = Dimensions.get('window').height - 160;
   
   // Рассчитываем начальный масштаб
-  // Изменено: используем более низкое значение для гарантированного отображения всего содержимого
-  // и учитываем оба измерения (ширину и высоту)
+  // Изменено: увеличиваем коэффициент с 0.9 до 1.5 для более близкого отображения плана
   const calculatedInitialZoom = initialZoom || 
-    Math.min(screenWidth / contentWidth, screenHeight / contentHeight) * 0.9;
+    Math.min(screenWidth / contentWidth, screenHeight / contentHeight) * 1.5;
   
   console.log(`ZoomableView: Screen=${screenWidth}x${screenHeight}, Content=${contentWidth}x${contentHeight}`);
   console.log(`ZoomableView: initialZoom=${calculatedInitialZoom}`);

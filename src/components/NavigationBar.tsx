@@ -1,5 +1,14 @@
-import React from 'react';
-import { View, TouchableOpacity, Text, StyleSheet, Platform, StatusBar } from 'react-native';
+import React, { useState } from 'react';
+import { 
+  View, 
+  TouchableOpacity, 
+  Text, 
+  StyleSheet, 
+  Platform, 
+  StatusBar, 
+  Animated, 
+  Easing 
+} from 'react-native';
 
 type FloorType = 'north-4' | 'north-16' | 'south-6' | 'south-7' | 'south-15' | 'south-16';
 
@@ -7,6 +16,58 @@ interface NavigationBarProps {
   currentFloor: FloorType;
   onFloorChange: (floor: FloorType) => void;
 }
+
+// Компонент анимированной кнопки
+const AnimatedButton: React.FC<{
+  title: string;
+  isActive: boolean;
+  onPress: () => void;
+}> = ({ title, isActive, onPress }) => {
+  // Значение анимации для эффекта нажатия
+  const [scaleAnim] = useState(new Animated.Value(1));
+  
+  const handlePressIn = () => {
+    Animated.timing(scaleAnim, {
+      toValue: 0.95,
+      duration: 100,
+      easing: Easing.ease,
+      useNativeDriver: true,
+    }).start();
+  };
+  
+  const handlePressOut = () => {
+    Animated.timing(scaleAnim, {
+      toValue: 1,
+      duration: 150,
+      easing: Easing.ease,
+      useNativeDriver: true,
+    }).start();
+  };
+  
+  return (
+    <TouchableOpacity
+      activeOpacity={0.8}
+      onPress={onPress}
+      onPressIn={handlePressIn}
+      onPressOut={handlePressOut}
+    >
+      <Animated.View
+        style={[
+          styles.button,
+          isActive ? styles.activeButton : null,
+          { transform: [{ scale: scaleAnim }] }
+        ]}
+      >
+        <Text style={[
+          styles.buttonText,
+          isActive ? styles.activeButtonText : null,
+        ]}>
+          {title}
+        </Text>
+      </Animated.View>
+    </TouchableOpacity>
+  );
+};
 
 const NavigationBar: React.FC<NavigationBarProps> = ({currentFloor, onFloorChange}) => {
   const floors: Array<{id: FloorType; title: string}> = [
@@ -28,49 +89,33 @@ const NavigationBar: React.FC<NavigationBarProps> = ({currentFloor, onFloorChang
         <Text style={styles.headerText}>Выберите этаж</Text>
       </View>
       
-      <View style={styles.towerContainer}>
-        <Text style={styles.towerLabel}>Северная башня:</Text>
-        <View style={styles.buttonRow}>
-          {northFloors.map((floor) => (
-            <TouchableOpacity
-              key={floor.id}
-              style={[
-                styles.button,
-                currentFloor === floor.id && styles.activeButton,
-              ]}
-              onPress={() => onFloorChange(floor.id)}>
-              <Text
-                style={[
-                  styles.buttonText,
-                  currentFloor === floor.id && styles.activeButtonText,
-                ]}>
-                {floor.title.split(' ')[1]} {/* Показываем только номер этажа */}
-              </Text>
-            </TouchableOpacity>
-          ))}
+      <View style={styles.navigationContainer}>
+        <View style={styles.towerContainer}>
+          <Text style={styles.towerLabel}>Северная</Text>
+          <View style={styles.buttonRow}>
+            {northFloors.map((floor) => (
+              <AnimatedButton
+                key={floor.id}
+                title={floor.title.split(' ')[1]}
+                isActive={currentFloor === floor.id}
+                onPress={() => onFloorChange(floor.id)}
+              />
+            ))}
+          </View>
         </View>
-      </View>
-      
-      <View style={styles.towerContainer}>
-        <Text style={styles.towerLabel}>Южная башня:</Text>
-        <View style={styles.buttonRow}>
-          {southFloors.map((floor) => (
-            <TouchableOpacity
-              key={floor.id}
-              style={[
-                styles.button,
-                currentFloor === floor.id && styles.activeButton,
-              ]}
-              onPress={() => onFloorChange(floor.id)}>
-              <Text
-                style={[
-                  styles.buttonText,
-                  currentFloor === floor.id && styles.activeButtonText,
-                ]}>
-                {floor.title.split(' ')[1]} {/* Показываем только номер этажа */}
-              </Text>
-            </TouchableOpacity>
-          ))}
+        
+        <View style={styles.towerContainer}>
+          <Text style={styles.towerLabel}>Южная</Text>
+          <View style={styles.buttonRow}>
+            {southFloors.map((floor) => (
+              <AnimatedButton
+                key={floor.id}
+                title={floor.title.split(' ')[1]}
+                isActive={currentFloor === floor.id}
+                onPress={() => onFloorChange(floor.id)}
+              />
+            ))}
+          </View>
         </View>
       </View>
     </View>
@@ -79,76 +124,79 @@ const NavigationBar: React.FC<NavigationBarProps> = ({currentFloor, onFloorChang
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#fff',
-    padding: 12,
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: {width: 0, height: 2},
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
+    backgroundColor: '#ffffff',
+    padding: 10,
+    elevation: 2,
+    shadowColor: 'rgba(0,0,0,0.1)',
+    shadowOffset: {width: 0, height: 1},
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
     borderBottomLeftRadius: 16,
     borderBottomRightRadius: 16,
-    // Добавляем отступ сверху для статус-бара
-    paddingTop: Platform.OS === 'ios' ? StatusBar.currentHeight || 20 : 12,
+    paddingTop: Platform.OS === 'ios' ? StatusBar.currentHeight || 20 : 10,
     marginTop: Platform.OS === 'android' ? StatusBar.currentHeight || 0 : 0,
   },
   header: {
     alignItems: 'center',
-    marginBottom: 12,
-    paddingBottom: 8,
+    marginBottom: 8,
+    paddingBottom: 6,
     borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
+    borderBottomColor: '#f0f0f0',
   },
   headerText: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  towerContainer: {
-    marginBottom: 12,
-  },
-  towerLabel: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#555',
+    color: '#333333',
+    fontFamily: Platform.OS === 'ios' ? 'System' : 'Roboto',
+    letterSpacing: 0.5,
+  },
+  navigationContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  towerContainer: {
+    flex: 1,
+    marginHorizontal: 4,
+  },
+  towerLabel: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#666666',
     marginBottom: 8,
+    fontFamily: Platform.OS === 'ios' ? 'System' : 'Roboto',
+    letterSpacing: 0.3,
   },
   buttonRow: {
     flexDirection: 'row',
+    justifyContent: 'flex-start',
     flexWrap: 'wrap',
   },
   button: {
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    marginRight: 8,
-    marginBottom: 8,
-    borderRadius: 12,
-    backgroundColor: '#f0f0f0',
-    minWidth: 60,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    marginRight: 6,
+    marginBottom: 6,
+    borderRadius: 8,
+    backgroundColor: '#f5f5f5',
+    minWidth: 32,
     alignItems: 'center',
-    // Добавляем тень для объемности
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: {width: 0, height: 1},
-    shadowOpacity: 0.2,
-    shadowRadius: 1.41,
+    borderWidth: 1,
+    borderColor: '#eeeeee',
+    // Минималистичный стиль без теней
   },
   activeButton: {
-    backgroundColor: '#007AFF',
-    // Усиливаем тень для активной кнопки
-    elevation: 4,
-    shadowColor: '#007AFF',
-    shadowOffset: {width: 0, height: 2},
-    shadowOpacity: 0.3,
-    shadowRadius: 2.62,
+    backgroundColor: '#4a90e2', // Голубой цвет для активной кнопки
+    borderColor: '#4a90e2',
   },
   buttonText: {
-    color: '#333',
-    fontSize: 16,
+    color: '#555555',
+    fontSize: 14,
     fontWeight: '500',
+    fontFamily: Platform.OS === 'ios' ? 'System' : 'Roboto',
+    letterSpacing: 0.2,
   },
   activeButtonText: {
-    color: '#fff',
+    color: '#ffffff',
     fontWeight: '600',
   },
 });

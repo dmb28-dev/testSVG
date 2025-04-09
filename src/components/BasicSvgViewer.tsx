@@ -37,10 +37,14 @@ const BasicSvgViewer: React.FC<BasicSvgViewerProps> = ({ svgXml, width, height }
   // Используем useRef для отслеживания монтирования компонента
   const isMounted = useRef(true);
   
-  // Устанавливаем начальный масштаб больше (95% вместо 85%)
+  // Устанавливаем начальный масштаб значительно больше (2.5 вместо 0.95)
+  // Это ключевое изменение для более близкого отображения плана этажа
   const initialZoom = useMemo(() => {
-    return Math.min(screenWidth / svgDimensions.width, screenHeight / svgDimensions.height) * 0.95;
-  }, [screenWidth, screenHeight, svgDimensions.width, svgDimensions.height]);
+    // Устанавливаем фиксированный масштаб 2.5 для более близкого отображения
+    return 0.65;
+    // Старый код для справки:
+    // return Math.min(screenWidth / svgDimensions.width, screenHeight / svgDimensions.height) * 0.95;
+  }, []);
   
   console.log(`BasicSvgViewer: Экран=${screenWidth}x${screenHeight}, SVG=${svgDimensions.width}x${svgDimensions.height}, Начальный масштаб=${initialZoom}`);
   
@@ -229,7 +233,7 @@ const BasicSvgViewer: React.FC<BasicSvgViewerProps> = ({ svgXml, width, height }
         maxZoom={5}
         minZoom={0.05} // Уменьшаем минимальный зум для больших SVG
         zoomStep={0.5}
-        initialZoom={initialZoom}
+        initialZoom={initialZoom} // Используем наш увеличенный масштаб
         bindToBorders={false}
         contentWidth={svgDimensions.width}
         contentHeight={svgDimensions.height}
