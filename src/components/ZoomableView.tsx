@@ -1,6 +1,5 @@
-// src/components/ZoomableView.tsx
-import React, { memo, useRef, useEffect } from 'react';
-import { StyleSheet, Dimensions, View, ScrollView } from 'react-native';
+import React, { memo } from 'react';
+import { StyleSheet, Dimensions, View } from 'react-native';
 import { ReactNativeZoomableView } from '@openspacelabs/react-native-zoomable-view';
 
 interface ZoomableViewProps {
@@ -50,6 +49,12 @@ const ZoomableView: React.FC<ZoomableViewProps> = memo(({
         visualTouchFeedbackEnabled={true}
         initialOffsetX={0} // Начальное смещение по X
         initialOffsetY={0} // Начальное смещение по Y
+        // Настраиваем обработку жестов для лучшей работы с WebView
+        pinchToZoomInSensitivity={3} // Увеличиваем чувствительность для масштабирования
+        pinchToZoomOutSensitivity={3} // Увеличиваем чувствительность для уменьшения
+        doubleTapDelay={200} // Уменьшаем задержку для двойного нажатия
+        // Отключаем обработку одиночных нажатий, чтобы они проходили к WebView
+        onSingleTap={() => {}} // Пустой обработчик, чтобы нажатия проходили дальше
       >
         <View style={styles.contentContainer}>
           {children}
